@@ -1,4 +1,4 @@
-// Package morsetrie implements a tried for morse code.
+// Package morsetrie implements trie based decoding for morse code.
 package morsetrie
 
 import (
@@ -8,11 +8,11 @@ import (
 )
 
 var (
-	// TODO: ErrInvalidElement is returned when...
+	// ErrInvalidElement is returned when a code string contains characters other than '.' or '-'.
 	ErrInvalidElement = errors.New("invalid morse element")
-	// TODO: ErrDuplicate is returned when...
+	// ErrDuplicate is returned when a morse code sequence is registered twice.
 	ErrDuplicate = errors.New("duplicate morse code")
-	// TODO: ErrUnexpectedChar is returned when...
+	// ErrUnexpectedChar is returned when the input string contains unsupported characters.
 	ErrUnexpectedChar = errors.New("unexpected character in morse input")
 )
 
@@ -76,7 +76,7 @@ type Trie struct {
 	Nodes []Node
 }
 
-// TODO: NewTrie...
+// NewTrie creates a new, empty Morse decode Trie.
 func NewTrie() *Trie {
 	t := &Trie{Nodes: make([]Node, 1)} // node 0 is the root
 	t.Nodes[0].Child[0] = -1
@@ -85,21 +85,19 @@ func NewTrie() *Trie {
 	return t
 }
 
-// TODO: parameter name 'r' is too short for the scope of its usage.
-func (t *Trie) add(code string, r rune) error {
+func (t *Trie) add(code string, symbol rune) error {
 	idx := 0 // start at root
 
-	// TODO: variable name 'i' is too short for the scope of its usage
-	for i := range len(code) {
+	for charIndex := range len(code) {
 		var bit int
 
-		switch code[i] {
+		switch code[charIndex] {
 		case '.':
 			bit = 0
 		case '-':
 			bit = 1
 		default:
-			return fmt.Errorf("%w: %q in %q", ErrInvalidElement, code[i], code)
+			return fmt.Errorf("%w: %q in %q", ErrInvalidElement, code[charIndex], code)
 		}
 
 		next := t.Nodes[idx].Child[bit]
@@ -117,22 +115,21 @@ func (t *Trie) add(code string, r rune) error {
 		return fmt.Errorf("%w: %q (already maps to %q)", ErrDuplicate, code, t.Nodes[idx].Val)
 	}
 
-	t.Nodes[idx].Val = r
+	t.Nodes[idx].Val = symbol
 
 	return nil
 }
 
-// TODO: BuildTrie...
+// BuildTrie constructs a Trie from the provided list of Morse code pairs.
 func BuildTrie(pairs []MorsePair) (*Trie, error) {
-	// TODO: variable name 't' is too short for the scope of its usage
-	t := NewTrie()
+	trie := NewTrie()
 	for _, p := range pairs {
-		if err := t.add(p.Code, p.R); err != nil {
+		if err := trie.add(p.Code, p.R); err != nil {
 			return nil, err
 		}
 	}
 
-	return t, nil
+	return trie, nil
 }
 
 // Decode implements the 3-state streaming state machine:
@@ -153,8 +150,7 @@ func (t *Trie) Decode(input string) (string, error) {
 	state := atRoot
 	idx := 0
 
-	// TODO: variable name 'b' is too short for the scope of its usage
-	var b strings.Builder
+	var builder strings.Builder
 
 	lastWasSpace := false
 
@@ -162,14 +158,14 @@ func (t *Trie) Decode(input string) (string, error) {
 		switch state {
 		case inLetter:
 			if t.Nodes[idx].Val == 0 {
-				b.WriteRune('?')
+				builder.WriteRune('?')
 			} else {
-				b.WriteRune(t.Nodes[idx].Val)
+				builder.WriteRune(t.Nodes[idx].Val)
 			}
 
 			lastWasSpace = false
 		case invalidLetter:
-			b.WriteRune('?')
+			builder.WriteRune('?')
 
 			lastWasSpace = false
 		}
@@ -180,17 +176,16 @@ func (t *Trie) Decode(input string) (string, error) {
 
 	commitWordBreak := func() {
 		// Avoid leading or repeated spaces.
-		if b.Len() > 0 && !lastWasSpace {
-			b.WriteByte(' ')
+		if builder.Len() > 0 && !lastWasSpace {
+			builder.WriteByte(' ')
 
 			lastWasSpace = true
 		}
 	}
 
-	for i := range len(input) {
-		// TODO: variable name 'c' is too short for the scope of its usage
-		c := input[i]
-		switch c {
+	for inputIndex := range len(input) {
+		char := input[inputIndex]
+		switch char {
 		case '.', '-':
 			if state == invalidLetter {
 				// Already invalid; keep consuming until a separator.
@@ -198,7 +193,7 @@ func (t *Trie) Decode(input string) (string, error) {
 			}
 
 			bit := 0
-			if c == '-' {
+			if char == '-' {
 				bit = 1
 			}
 
@@ -228,7 +223,7 @@ func (t *Trie) Decode(input string) (string, error) {
 			commitWordBreak()
 
 		default:
-			return "", fmt.Errorf("%w: "+string([]byte{c}), ErrUnexpectedChar) //nolint:err113
+			return "", fmt.Errorf("%w: "+string([]byte{char}), ErrUnexpectedChar) //nolint:err113
 		}
 	}
 
@@ -237,5 +232,5 @@ func (t *Trie) Decode(input string) (string, error) {
 		commitLetter()
 	}
 
-	return b.String(), nil
+	return builder.String(), nil
 }
