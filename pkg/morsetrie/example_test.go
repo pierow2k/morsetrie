@@ -10,15 +10,14 @@ import (
 
 // Example_run demonstrates the use of the morsetrie package.
 func Example_run() {
-	// TODO: variable name 't' is too short for the scope of its usage.
-	t, err := morsetrie.BuildTrie(morsetrie.MorseTable)
+	trie, err := morsetrie.BuildTrie(morsetrie.MorseTable)
 	if err != nil {
 		panic(err)
 	}
 
 	in := ".... . .-.. .-.. --- / .-- --- .-. .-.. -.."
 
-	out, err := t.Decode(in)
+	out, err := trie.Decode(in)
 	if err != nil {
 		panic(err)
 	}
