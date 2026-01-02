@@ -8,11 +8,13 @@ import (
 )
 
 var (
-	// ErrInvalidElement is returned when a code string contains characters other than '.' or '-'.
+	// ErrInvalidElement is returned when a code string contains characters
+	// other than '.' or '-'.
 	ErrInvalidElement = errors.New("invalid morse element")
 	// ErrDuplicate is returned when a morse code sequence is registered twice.
 	ErrDuplicate = errors.New("duplicate morse code")
-	// ErrUnexpectedChar is returned when the input string contains unsupported characters.
+	// ErrUnexpectedChar is returned when the input string contains
+	// unsupported characters.
 	ErrUnexpectedChar = errors.New("unexpected character in morse input")
 )
 
@@ -97,7 +99,8 @@ func (t *Trie) add(code string, symbol rune) error {
 		case '-':
 			bit = 1
 		default:
-			return fmt.Errorf("%w: %q in %q", ErrInvalidElement, code[charIndex], code)
+			return fmt.Errorf(
+				"%w: %q in %q", ErrInvalidElement, code[charIndex], code)
 		}
 
 		next := t.Nodes[idx].Child[bit]
@@ -112,7 +115,8 @@ func (t *Trie) add(code string, symbol rune) error {
 	}
 
 	if t.Nodes[idx].Val != 0 {
-		return fmt.Errorf("%w: %q (already maps to %q)", ErrDuplicate, code, t.Nodes[idx].Val)
+		return fmt.Errorf(
+			"%w: %q (already maps to %q)", ErrDuplicate, code, t.Nodes[idx].Val)
 	}
 
 	t.Nodes[idx].Val = symbol
@@ -132,6 +136,76 @@ func BuildTrie(pairs []MorsePair) (*Trie, error) {
 	return trie, nil
 }
 
+// Internal constants for the state machine.
+const (
+	stateAtRoot = iota
+	stateInLetter
+	stateInvalidLetter
+)
+
+// decodeState holds the context for a single Decode operation.
+type decodeState struct {
+	trie         *Trie
+	state        int
+	nodeIdx      int
+	builder      strings.Builder
+	lastWasSpace bool
+}
+
+// commitLetter finalizes the current morse sequence (if any) and writes it
+// to the builder.
+func (d *decodeState) commitLetter() {
+	if d.state == stateAtRoot {
+		return
+	}
+
+	if d.state == stateInLetter {
+		val := d.trie.Nodes[d.nodeIdx].Val
+		if val == 0 {
+			d.builder.WriteRune('?')
+		} else {
+			d.builder.WriteRune(val)
+		}
+	} else {
+		// stateInvalidLetter
+		d.builder.WriteRune('?')
+	}
+
+	d.lastWasSpace = false
+	d.reset()
+}
+
+// reset returns the traversal state to the root.
+func (d *decodeState) reset() {
+	d.state = stateAtRoot
+	d.nodeIdx = 0
+}
+
+// commitWordBreak inserts a space if appropriate.
+func (d *decodeState) commitWordBreak() {
+	if d.builder.Len() > 0 && !d.lastWasSpace {
+		d.builder.WriteByte(' ')
+		d.lastWasSpace = true
+	}
+}
+
+// traverse moves the state machine forward based on a dot (0) or dash (1).
+func (d *decodeState) traverse(bit int) {
+	if d.state == stateInvalidLetter {
+		return
+	}
+
+	next := d.trie.Nodes[d.nodeIdx].Child[bit]
+	if next == -1 {
+		d.state = stateInvalidLetter
+
+		return
+	}
+
+	d.nodeIdx = next
+	d.state = stateInLetter
+}
+
 // Decode implements the 3-state streaming state machine:
 //   - AtRoot: not currently in a letter
 //   - InLetter: traversing '.'/'-' edges for a letter
@@ -141,96 +215,26 @@ func BuildTrie(pairs []MorsePair) (*Trie, error) {
 //   - ' ' (and common ASCII whitespace) ends a letter
 //   - '/' ends a letter and emits a word break
 func (t *Trie) Decode(input string) (string, error) {
-	const (
-		atRoot = iota
-		inLetter
-		invalidLetter
-	)
+	decode := &decodeState{trie: t}
 
-	state := atRoot
-	idx := 0
-
-	var builder strings.Builder
-
-	lastWasSpace := false
-
-	commitLetter := func() {
-		switch state {
-		case inLetter:
-			if t.Nodes[idx].Val == 0 {
-				builder.WriteRune('?')
-			} else {
-				builder.WriteRune(t.Nodes[idx].Val)
-			}
-
-			lastWasSpace = false
-		case invalidLetter:
-			builder.WriteRune('?')
-
-			lastWasSpace = false
-		}
-		// Reset to root.
-		state = atRoot
-		idx = 0
-	}
-
-	commitWordBreak := func() {
-		// Avoid leading or repeated spaces.
-		if builder.Len() > 0 && !lastWasSpace {
-			builder.WriteByte(' ')
-
-			lastWasSpace = true
-		}
-	}
-
-	for inputIndex := range len(input) {
-		char := input[inputIndex]
+	for i := range len(input) {
+		char := input[i]
 		switch char {
-		case '.', '-':
-			if state == invalidLetter {
-				// Already invalid; keep consuming until a separator.
-				continue
-			}
-
-			bit := 0
-			if char == '-' {
-				bit = 1
-			}
-
-			next := t.Nodes[idx].Child[bit]
-			if next == -1 {
-				state = invalidLetter
-
-				continue
-			}
-
-			idx = next
-			state = inLetter
-
+		case '.':
+			decode.traverse(0)
+		case '-':
+			decode.traverse(1)
 		case ' ', '\t', '\n', '\r':
-			// Letter separator.
-			if state != atRoot {
-				commitLetter()
-			}
-			// If at root, ignore extra whitespace.
-
+			decode.commitLetter()
 		case '/':
-			// Word break.
-			if state != atRoot {
-				commitLetter()
-			}
-
-			commitWordBreak()
-
+			decode.commitLetter()
+			decode.commitWordBreak()
 		default:
-			return "", fmt.Errorf("%w: "+string([]byte{char}), ErrUnexpectedChar) //nolint:err113
+			return "", fmt.Errorf("%w: %c", ErrUnexpectedChar, char)
 		}
 	}
 
-	// End-of-input flush.
-	if state != atRoot {
-		commitLetter()
-	}
+	decode.commitLetter()
 
-	return builder.String(), nil
+	return decode.builder.String(), nil
 }
