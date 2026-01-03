@@ -4,7 +4,21 @@ package morsetrie
 import (
 	"errors"
 	"fmt"
+	"math"
 	"strings"
+)
+
+const (
+	// defaultTrieCapacity is the initial allocation size for the Trie node slice.
+	defaultTrieCapacity = 64
+	// decodeAllocDivisor estimates decoded text size (approx 1/3 of morse input).
+	decodeAllocDivisor = 3
+)
+
+const (
+	rootIdx     = int16(0)
+	invalidIdx  = int16(-2) // Represents traversing off the trie.
+	missingNode = int16(-1) // Represents a child definition that doesn't exist.
 )
 
 var (
@@ -16,6 +30,9 @@ var (
 	// ErrUnexpectedChar is returned when the input string contains
 	// unsupported characters.
 	ErrUnexpectedChar = errors.New("unexpected character in morse input")
+	// ErrTrieFull is returned when the Trie exceeds the maximum number of nodes
+	// addressable by int16.
+	ErrTrieFull = errors.New("trie capacity exceeded")
 )
 
 // MorsePair is a single Morse-code mapping entry.
@@ -24,7 +41,7 @@ type MorsePair struct {
 	R    rune
 }
 
-// MorseTable is the morse code mapping.
+// MorseTable is the standard morse code mapping.
 var MorseTable = []MorsePair{
 	{".-", 'A'},
 	{"-...", 'B'},
@@ -65,13 +82,13 @@ var MorseTable = []MorsePair{
 	{"----.", '9'},
 }
 
-// Node is a binary trie Node.
-// child[0] is the '.' edge; child[1] is the '-' edge.
-// val==0 means "no symbol at this Node".
-// Optimized Node: 8 bytes total.
-// Child indices are int16 (max 32767 nodes, plenty for Morse).
+// Node is a node in the decoding Trie.
 type Node struct {
-	Val   rune
+	// Val is the decoded rune. If 0, this node is not a valid symbol end.
+	Val rune
+	// Child stores indices for the next node.
+	// Child[0] is the '.' edge; Child[1] is the '-' edge.
+	// We use int16 to reduce memory footprint.
 	Child [2]int16
 }
 
@@ -82,40 +99,42 @@ type Trie struct {
 
 // NewTrie creates a new, empty Morse decode Trie.
 func NewTrie() *Trie {
-	// TODO: Use a constant to eliminate the magic number "64".
-	t := &Trie{Nodes: make([]Node, 1, 64)} // Pre-alloc cap to avoid early appends
-	// Use -1 to indicate no child.
-	t.Nodes[0].Child[0] = -1
-	t.Nodes[0].Child[1] = -1
+	trie := &Trie{Nodes: make([]Node, 1, defaultTrieCapacity)}
 
-	return t
+	// Initialize root children to indicate they are missing.
+	trie.Nodes[rootIdx].Child[0] = missingNode
+	trie.Nodes[rootIdx].Child[1] = missingNode
+
+	return trie
 }
 
 func (t *Trie) add(code string, symbol rune) error {
-	idx := int16(0) // start at root
+	idx := rootIdx
 
-	// TODO: variable name 'i' is too short for the scope of its usage.
-	for i := range len(code) {
+	for charIdx := range len(code) {
 		var bit int
 
-		switch code[i] {
+		switch code[charIdx] {
 		case '.':
 			bit = 0
 		case '-':
 			bit = 1
 		default:
-			return fmt.Errorf("%w: %q in %q", ErrInvalidElement, code[i], code)
+			return fmt.Errorf("%w: %q in %q", ErrInvalidElement, code[charIdx], code)
 		}
 
 		next := t.Nodes[idx].Child[bit]
-		if next == -1 {
-			// TODO: Resolve integer overflow conversion int -> int16
-			// Add explicit bounds checks before conversion or use a safe
-			// conversion library like go-safecast, which provides
-			// safecast.Convert[T]() to detect overflow and return errors.
-			next = int16(len(t.Nodes))
-			// Create new node with empty children
-			t.Nodes = append(t.Nodes, Node{Child: [2]int16{-1, -1}})
+		if next == missingNode {
+			// Check for integer overflow before casting to int16.
+			if len(t.Nodes) > math.MaxInt16 {
+				return ErrTrieFull
+			}
+
+			// Disabled gosec linter warning. Bounds are checked prior to conversion.
+			next = int16(len(t.Nodes)) //nolint:gosec
+
+			// Create new node with missing children.
+			t.Nodes = append(t.Nodes, Node{Child: [2]int16{missingNode, missingNode}})
 			t.Nodes[idx].Child[bit] = next
 		}
 
@@ -143,23 +162,10 @@ func BuildTrie(pairs []MorsePair) (*Trie, error) {
 	return trie, nil
 }
 
-// TODO: The cognitive complexity 54 of func `(*Trie).Decode` is high (> 30)
-// utilize focused helper functions to reduce the cognitive complexity of
-// `(*Trie).Decode`
-
 // Decode decodes the input string.
-// Optimization: flattened logic, stack variables, buffer pre-allocation.
 func (t *Trie) Decode(input string) (string, error) {
 	var builder strings.Builder
-	// Heuristic: Decoded text is roughly 1/3 the size of Morse input.
-	// TODO: Use a constant to eliminate the magic number "3".
-	builder.Grow(len(input) / 3)
-
-	const (
-		rootIdx     = int16(0)
-		invalidIdx  = int16(-2) // Represents we walked off the trie
-		missingNode = int16(-1) // Represents a child definition that doesn't exist
-	)
+	builder.Grow(len(input) / decodeAllocDivisor)
 
 	curr := rootIdx
 	lastWasSpace := false
@@ -169,54 +175,17 @@ func (t *Trie) Decode(input string) (string, error) {
 
 		switch char {
 		case '.':
-			if curr != invalidIdx {
-				curr = t.Nodes[curr].Child[0]
-				// If child is -1, we went off the path
-				if curr == missingNode {
-					curr = invalidIdx
-				}
-			}
+			curr = t.advance(curr, 0)
 		case '-':
-			if curr != invalidIdx {
-				curr = t.Nodes[curr].Child[1]
-				if curr == missingNode {
-					curr = invalidIdx
-				}
-			}
+			curr = t.advance(curr, 1)
 		case ' ', '\t', '\n', '\r':
-			// Commit letter
-			if curr != rootIdx {
-				if curr == invalidIdx {
-					builder.WriteByte('?')
-				} else {
-					val := t.Nodes[curr].Val
-					if val == 0 {
-						builder.WriteByte('?')
-					} else {
-						builder.WriteRune(val)
-					}
-				}
-
-				curr = rootIdx
-				lastWasSpace = false
-			}
+			t.commit(&builder, curr)
+			curr = rootIdx
+			lastWasSpace = false
 		case '/':
-			// Commit letter (if any)
-			if curr != rootIdx {
-				if curr == invalidIdx {
-					builder.WriteByte('?')
-				} else {
-					val := t.Nodes[curr].Val
-					if val == 0 {
-						builder.WriteByte('?')
-					} else {
-						builder.WriteRune(val)
-					}
-				}
-
-				curr = rootIdx
-			}
-			// Commit word break
+			t.commit(&builder, curr)
+			curr = rootIdx
+			// Commit word break if we aren't already spacing.
 			if builder.Len() > 0 && !lastWasSpace {
 				builder.WriteByte(' ')
 
@@ -227,19 +196,44 @@ func (t *Trie) Decode(input string) (string, error) {
 		}
 	}
 
-	// Final commit (end of string)
-	if curr != rootIdx {
-		if curr == invalidIdx {
-			builder.WriteByte('?')
-		} else {
-			val := t.Nodes[curr].Val
-			if val == 0 {
-				builder.WriteByte('?')
-			} else {
-				builder.WriteRune(val)
-			}
-		}
-	}
+	t.commit(&builder, curr)
 
 	return builder.String(), nil
+}
+
+// advance returns the index of the child node for the given bit (0 for dot, 1 for dash).
+// If the current path is already invalid, it stays invalid.
+func (t *Trie) advance(curr int16, bit int) int16 {
+	if curr == invalidIdx {
+		return invalidIdx
+	}
+
+	next := t.Nodes[curr].Child[bit]
+	if next == missingNode {
+		return invalidIdx
+	}
+
+	return next
+}
+
+// commit writes the character corresponding to the current node index to the builder.
+// If the path was invalid or the node has no value, it writes '?'.
+// If the current node is the root (meaning consecutive separators), nothing is written.
+func (t *Trie) commit(builder *strings.Builder, curr int16) {
+	if curr == rootIdx {
+		return
+	}
+
+	if curr == invalidIdx {
+		builder.WriteByte('?')
+
+		return
+	}
+
+	val := t.Nodes[curr].Val
+	if val == 0 {
+		builder.WriteByte('?')
+	} else {
+		builder.WriteRune(val)
+	}
 }
