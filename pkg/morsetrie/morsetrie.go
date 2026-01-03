@@ -1,4 +1,4 @@
-// Package morsetrie implements trie based decoding for morse code.
+// Package morsetrie implements trie-based decoding for morse code.
 package morsetrie
 
 import (
@@ -82,18 +82,22 @@ type Trie struct {
 
 // NewTrie creates a new, empty Morse decode Trie.
 func NewTrie() *Trie {
+	// TODO: Use a constant to eliminate the magic number "64".
 	t := &Trie{Nodes: make([]Node, 1, 64)} // Pre-alloc cap to avoid early appends
 	// Use -1 to indicate no child.
 	t.Nodes[0].Child[0] = -1
 	t.Nodes[0].Child[1] = -1
+
 	return t
 }
 
 func (t *Trie) add(code string, symbol rune) error {
 	idx := int16(0) // start at root
 
-	for i := 0; i < len(code); i++ {
+	// TODO: variable name 'i' is too short for the scope of its usage.
+	for i := range len(code) {
 		var bit int
+
 		switch code[i] {
 		case '.':
 			bit = 0
@@ -105,6 +109,10 @@ func (t *Trie) add(code string, symbol rune) error {
 
 		next := t.Nodes[idx].Child[bit]
 		if next == -1 {
+			// TODO: Resolve integer overflow conversion int -> int16
+			// Add explicit bounds checks before conversion or use a safe
+			// conversion library like go-safecast, which provides
+			// safecast.Convert[T]() to detect overflow and return errors.
 			next = int16(len(t.Nodes))
 			// Create new node with empty children
 			t.Nodes = append(t.Nodes, Node{Child: [2]int16{-1, -1}})
@@ -119,6 +127,7 @@ func (t *Trie) add(code string, symbol rune) error {
 	}
 
 	t.Nodes[idx].Val = symbol
+
 	return nil
 }
 
@@ -130,15 +139,21 @@ func BuildTrie(pairs []MorsePair) (*Trie, error) {
 			return nil, err
 		}
 	}
+
 	return trie, nil
 }
+
+// TODO: The cognitive complexity 54 of func `(*Trie).Decode` is high (> 30)
+// utilize focused helper functions to reduce the cognitive complexity of
+// `(*Trie).Decode`
 
 // Decode decodes the input string.
 // Optimization: flattened logic, stack variables, buffer pre-allocation.
 func (t *Trie) Decode(input string) (string, error) {
-	var b strings.Builder
+	var builder strings.Builder
 	// Heuristic: Decoded text is roughly 1/3 the size of Morse input.
-	b.Grow(len(input) / 3)
+	// TODO: Use a constant to eliminate the magic number "3".
+	builder.Grow(len(input) / 3)
 
 	const (
 		rootIdx     = int16(0)
@@ -149,7 +164,7 @@ func (t *Trie) Decode(input string) (string, error) {
 	curr := rootIdx
 	lastWasSpace := false
 
-	for i := 0; i < len(input); i++ {
+	for i := range len(input) {
 		char := input[i]
 
 		switch char {
@@ -172,15 +187,16 @@ func (t *Trie) Decode(input string) (string, error) {
 			// Commit letter
 			if curr != rootIdx {
 				if curr == invalidIdx {
-					b.WriteByte('?')
+					builder.WriteByte('?')
 				} else {
 					val := t.Nodes[curr].Val
 					if val == 0 {
-						b.WriteByte('?')
+						builder.WriteByte('?')
 					} else {
-						b.WriteRune(val)
+						builder.WriteRune(val)
 					}
 				}
+
 				curr = rootIdx
 				lastWasSpace = false
 			}
@@ -188,20 +204,22 @@ func (t *Trie) Decode(input string) (string, error) {
 			// Commit letter (if any)
 			if curr != rootIdx {
 				if curr == invalidIdx {
-					b.WriteByte('?')
+					builder.WriteByte('?')
 				} else {
 					val := t.Nodes[curr].Val
 					if val == 0 {
-						b.WriteByte('?')
+						builder.WriteByte('?')
 					} else {
-						b.WriteRune(val)
+						builder.WriteRune(val)
 					}
 				}
+
 				curr = rootIdx
 			}
 			// Commit word break
-			if b.Len() > 0 && !lastWasSpace {
-				b.WriteByte(' ')
+			if builder.Len() > 0 && !lastWasSpace {
+				builder.WriteByte(' ')
+
 				lastWasSpace = true
 			}
 		default:
@@ -212,16 +230,16 @@ func (t *Trie) Decode(input string) (string, error) {
 	// Final commit (end of string)
 	if curr != rootIdx {
 		if curr == invalidIdx {
-			b.WriteByte('?')
+			builder.WriteByte('?')
 		} else {
 			val := t.Nodes[curr].Val
 			if val == 0 {
-				b.WriteByte('?')
+				builder.WriteByte('?')
 			} else {
-				b.WriteRune(val)
+				builder.WriteRune(val)
 			}
 		}
 	}
 
-	return b.String(), nil
+	return builder.String(), nil
 }
