@@ -5,6 +5,8 @@
 package morsetrie
 
 import (
+	"errors"
+	"math"
 	"strings"
 	"testing"
 )
@@ -20,65 +22,84 @@ func TestTrie_add(t *testing.T) {
 	}
 
 	tests := []struct {
-		name     string
-		existing []entry
-		code     string
-		symbol   rune
-		wantErr  bool
+		name      string
+		existing  []entry
+		setup     func(*Trie)
+		code      string
+		symbol    rune
+		wantErr   bool
+		wantErrIs error
 	}{
 		{
-			name:    "valid_entry",
-			code:    ".-",
-			symbol:  'A',
-			wantErr: false,
+			name:   "valid_entry",
+			code:   ".-",
+			symbol: 'A',
 		},
 		{
-			name:    "invalid_element",
-			code:    ".*",
-			symbol:  '*',
-			wantErr: true,
+			name:      "invalid_element",
+			code:      ".*",
+			symbol:    '*',
+			wantErr:   true,
+			wantErrIs: ErrInvalidElement,
 		},
 		{
 			name: "duplicate_entry",
 			existing: []entry{
 				{code: ".", symbol: 'E'},
 			},
-			code:    ".",
-			symbol:  'E',
-			wantErr: true,
+			code:      ".",
+			symbol:    'E',
+			wantErr:   true,
+			wantErrIs: ErrDuplicate,
 		},
 		{
 			name: "duplicate_collision",
 			existing: []entry{
 				{code: ".", symbol: 'E'},
 			},
-			code:    ".",
-			symbol:  'I',
-			wantErr: true,
+			code:      ".",
+			symbol:    'I',
+			wantErr:   true,
+			wantErrIs: ErrDuplicate,
+		},
+		{
+			name: "trie_full",
+			setup: func(trie *Trie) {
+				trie.Nodes = make([]Node, math.MaxInt16+1, math.MaxInt16+1)
+				trie.Nodes[rootIdx].Child[0] = missingNode
+				trie.Nodes[rootIdx].Child[1] = missingNode
+			},
+			code:      ".",
+			symbol:    'E',
+			wantErr:   true,
+			wantErrIs: ErrTrieFull,
 		},
 	}
 	for _, testCase := range tests {
 		t.Run(testCase.name, func(t *testing.T) {
 			t.Parallel()
 
-			trie := NewTrie()
+			tr := NewTrie()
+			if testCase.setup != nil {
+				testCase.setup(tr)
+			}
+
 			for _, e := range testCase.existing {
-				if err := trie.add(e.code, e.symbol); err != nil {
+				if err := tr.add(e.code, e.symbol); err != nil {
 					t.Fatalf("setup failed: %v", err)
 				}
 			}
 
-			gotErr := trie.add(testCase.code, testCase.symbol)
-			if gotErr != nil {
-				if !testCase.wantErr {
-					t.Errorf("add() failed: %v", gotErr)
-				}
-
+			gotErr := tr.add(testCase.code, testCase.symbol)
+			if (gotErr != nil) != testCase.wantErr {
+				t.Errorf("add() error = %v, wantErr %v", gotErr, testCase.wantErr)
 				return
 			}
 
-			if testCase.wantErr {
-				t.Fatal("add() succeeded unexpectedly")
+			if testCase.wantErrIs != nil {
+				if !errors.Is(gotErr, testCase.wantErrIs) {
+					t.Errorf("add() error = %v, want error to be %v", gotErr, testCase.wantErrIs)
+				}
 			}
 		})
 	}
