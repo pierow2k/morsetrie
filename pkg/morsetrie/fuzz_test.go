@@ -28,9 +28,11 @@ func FuzzDecode(f *testing.F) {
 
 		// Check if input contains invalid characters.
 		isValid := true
+
 		for _, r := range input {
 			if !strings.ContainsRune(".- / \t\n\r", r) {
 				isValid = false
+
 				break
 			}
 		}
