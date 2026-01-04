@@ -11,7 +11,7 @@ import (
 	"github.com/pierow2k/morsetrie/pkg/morsetrie"
 )
 
-// TestTrie_Decode provides unit tests for Decode.
+// TestTrie_Decode provides unit tests for the Decode method.
 func TestTrie_Decode(t *testing.T) {
 	t.Parallel()
 
@@ -138,10 +138,12 @@ func TestBuildTrie(t *testing.T) {
 	for _, testCase := range tests {
 		t.Run(testCase.name, func(t *testing.T) {
 			t.Parallel()
+
 			_, err := morsetrie.BuildTrie(testCase.pairs)
 			if (err != nil) != testCase.wantErr {
 				t.Errorf("BuildTrie() error = %v, wantErr %v", err, testCase.wantErr)
 			}
+
 			if testCase.wantErrIs != nil && !errors.Is(err, testCase.wantErrIs) {
 				t.Errorf("BuildTrie() error = %v, wantErrIs %v", err, testCase.wantErrIs)
 			}
