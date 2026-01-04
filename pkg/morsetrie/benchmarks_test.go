@@ -24,3 +24,10 @@ func BenchmarkDecode(b *testing.B) {
 		_, _ = trie.Decode(input)
 	}
 }
+
+// BenchmarkBuildTrie measures the performance of the BuildTrie function.
+func BenchmarkBuildTrie(b *testing.B) {
+	for b.Loop() {
+		_, _ = morsetrie.BuildTrie(morsetrie.MorseTable)
+	}
+}
