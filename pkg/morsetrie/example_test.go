@@ -8,20 +8,23 @@ import (
 	"github.com/pierow2k/morsetrie/pkg/morsetrie"
 )
 
-// Example_run demonstrates the use of the morsetrie package.
-func Example_run() {
+// ExampleTrie_Decode provides an example to demonstrate the use of the
+// Decode method.
+func ExampleTrie_Decode() {
+	// Build a trie using the built-in MorseTable data.
 	trie, err := morsetrie.BuildTrie(morsetrie.MorseTable)
 	if err != nil {
 		panic(err)
 	}
 
-	in := ".... . .-.. .-.. --- / .-- --- .-. .-.. -.."
+	morseCode := ".... . .-.. .-.. --- / .-- --- .-. .-.. -.."
 
-	out, err := trie.Decode(in)
+	text, err := trie.Decode(morseCode)
 	if err != nil {
 		panic(err)
 	}
 
-	fmt.Println(out)
-	// Output: HELLO WORLD
+	fmt.Println(text)
+	// Output:
+	// HELLO WORLD
 }
