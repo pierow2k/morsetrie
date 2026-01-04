@@ -1,0 +1,101 @@
+// Package morsetrie_test provides black-box tests, benchmarks, and runnable
+// examples for the public API of the morsetrie package.
+//
+//nolint:funlen
+package morsetrie_test
+
+import (
+	"testing"
+
+	"github.com/pierow2k/morsetrie/pkg/morsetrie"
+)
+
+// TestTrie_Decode provides unit tests for Decode.
+func TestTrie_Decode(t *testing.T) {
+	t.Parallel()
+
+	type fields struct {
+		pairs []morsetrie.MorsePair
+	}
+
+	type args struct {
+		input string
+	}
+
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		want    string
+		wantErr bool
+	}{
+		{
+			name: "basic_sos",
+			fields: fields{
+				pairs: []morsetrie.MorsePair{
+					{Code: "...", R: 'S'},
+					{Code: "---", R: 'O'},
+				},
+			},
+			args: args{
+				input: "... --- ...",
+			},
+			want:    "SOS",
+			wantErr: false,
+		},
+		{
+			name: "standard_hello_world",
+			fields: fields{
+				pairs: morsetrie.MorseTable,
+			},
+			args: args{
+				input: ".... . .-.. .-.. --- / .-- --- .-. .-.. -..",
+			},
+			want:    "HELLO WORLD",
+			wantErr: false,
+		},
+		{
+			name: "unknown_sequence",
+			fields: fields{
+				pairs: morsetrie.MorseTable,
+			},
+			args: args{
+				input: "........",
+			},
+			want:    "?",
+			wantErr: false,
+		},
+		{
+			name: "invalid_character",
+			fields: fields{
+				pairs: morsetrie.MorseTable,
+			},
+			args: args{
+				input: "abc",
+			},
+			want:    "",
+			wantErr: true,
+		},
+	}
+	for _, testCase := range tests {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			tr, err := morsetrie.BuildTrie(testCase.fields.pairs)
+			if err != nil {
+				t.Fatalf("BuildTrie() error = %v", err)
+			}
+
+			got, err := tr.Decode(testCase.args.input)
+			if (err != nil) != testCase.wantErr {
+				t.Errorf("Trie.Decode() error = %v, wantErr %v", err, testCase.wantErr)
+
+				return
+			}
+
+			if got != testCase.want {
+				t.Errorf("Trie.Decode() = %v, want %v", got, testCase.want)
+			}
+		})
+	}
+}
