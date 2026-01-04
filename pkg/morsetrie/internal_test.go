@@ -65,7 +65,7 @@ func TestTrie_add(t *testing.T) {
 		{
 			name: "trie_full",
 			setup: func(trie *Trie) {
-				trie.Nodes = make([]Node, math.MaxInt16+1, math.MaxInt16+1)
+				trie.Nodes = make([]Node, math.MaxInt16+1)
 				trie.Nodes[rootIdx].Child[0] = missingNode
 				trie.Nodes[rootIdx].Child[1] = missingNode
 			},
@@ -79,20 +79,21 @@ func TestTrie_add(t *testing.T) {
 		t.Run(testCase.name, func(t *testing.T) {
 			t.Parallel()
 
-			tr := NewTrie()
+			trie := NewTrie()
 			if testCase.setup != nil {
-				testCase.setup(tr)
+				testCase.setup(trie)
 			}
 
 			for _, e := range testCase.existing {
-				if err := tr.add(e.code, e.symbol); err != nil {
+				if err := trie.add(e.code, e.symbol); err != nil {
 					t.Fatalf("setup failed: %v", err)
 				}
 			}
 
-			gotErr := tr.add(testCase.code, testCase.symbol)
+			gotErr := trie.add(testCase.code, testCase.symbol)
 			if (gotErr != nil) != testCase.wantErr {
 				t.Errorf("add() error = %v, wantErr %v", gotErr, testCase.wantErr)
+
 				return
 			}
 
