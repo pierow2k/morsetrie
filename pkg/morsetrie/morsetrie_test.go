@@ -5,6 +5,7 @@
 package morsetrie_test
 
 import (
+	"errors"
 	"testing"
 
 	"github.com/pierow2k/morsetrie/pkg/morsetrie"
@@ -95,6 +96,54 @@ func TestTrie_Decode(t *testing.T) {
 
 			if got != testCase.want {
 				t.Errorf("Trie.Decode() = %v, want %v", got, testCase.want)
+			}
+		})
+	}
+}
+
+// TestBuildTrie provides unit tests for BuildTrie, specifically for the error
+// return path.
+func TestBuildTrie(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name      string
+		pairs     []morsetrie.MorsePair
+		wantErr   bool
+		wantErrIs error
+	}{
+		{
+			name:    "valid_build",
+			pairs:   morsetrie.MorseTable,
+			wantErr: false,
+		},
+		{
+			name: "duplicate_code",
+			pairs: []morsetrie.MorsePair{
+				{Code: ".-", R: 'A'},
+				{Code: ".-", R: 'B'},
+			},
+			wantErr:   true,
+			wantErrIs: morsetrie.ErrDuplicate,
+		},
+		{
+			name: "invalid_element",
+			pairs: []morsetrie.MorsePair{
+				{Code: ".*", R: 'A'},
+			},
+			wantErr:   true,
+			wantErrIs: morsetrie.ErrInvalidElement,
+		},
+	}
+	for _, testCase := range tests {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+			_, err := morsetrie.BuildTrie(testCase.pairs)
+			if (err != nil) != testCase.wantErr {
+				t.Errorf("BuildTrie() error = %v, wantErr %v", err, testCase.wantErr)
+			}
+			if testCase.wantErrIs != nil && !errors.Is(err, testCase.wantErrIs) {
+				t.Errorf("BuildTrie() error = %v, wantErrIs %v", err, testCase.wantErrIs)
 			}
 		})
 	}
