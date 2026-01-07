@@ -9,7 +9,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/pierow2k/morsetrie/pkg/morsetrie"
+	"github.com/pierow2k/morsetrie"
 )
 
 // FuzzDecode performs fuzz testing for the Decode method.

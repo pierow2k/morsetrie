@@ -5,7 +5,7 @@ package morsetrie_test
 import (
 	"fmt"
 
-	"github.com/pierow2k/morsetrie/pkg/morsetrie"
+	"github.com/pierow2k/morsetrie"
 )
 
 // ExampleTrie_Decode provides an example to demonstrate the use of the

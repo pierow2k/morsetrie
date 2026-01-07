@@ -8,7 +8,7 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/pierow2k/morsetrie/pkg/morsetrie"
+	"github.com/pierow2k/morsetrie"
 )
 
 // TestTrie_Decode provides unit tests for the Decode method.

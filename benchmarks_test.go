@@ -5,7 +5,7 @@ package morsetrie_test
 import (
 	"testing"
 
-	"github.com/pierow2k/morsetrie/pkg/morsetrie"
+	"github.com/pierow2k/morsetrie"
 )
 
 // BenchmarkDecode measures the performance of the Decode function.
