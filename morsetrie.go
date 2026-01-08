@@ -41,13 +41,14 @@ type MorsePair struct {
 	R    rune
 }
 
-// MorseTable is the standard morse code mapping.
+// MorseTable is the ITU M.1677 standard International Morse code mapping for.
 var MorseTable = []MorsePair{
 	{".-", 'A'},
 	{"-...", 'B'},
 	{"-.-.", 'C'},
 	{"-..", 'D'},
 	{".", 'E'},
+	{"..-..", 'É'},
 	{"..-.", 'F'},
 	{"--.", 'G'},
 	{"....", 'H'},
@@ -81,20 +82,19 @@ var MorseTable = []MorsePair{
 	{"---..", '8'},
 	{"----.", '9'},
 
-	// {".-.-.-", '.'},
-	// {"--..--", ','},
-	// {"---...", ':'},
-	// {"..--..", '?'},
-	// {".----.", '’'},
-	// {"-....-", '–'},
-	// {"-..-.", '/'},
-	// {"-.--.", '('},
-	// {"-.--.-", ')'},
-	// {".-..-.", '"'},
-	// {"-...-", '='},
-	// {".-.-.", '+'},
-	// {"-..-", '×'},
-	// {".––.–.", '@'},
+	{".-.-.-", '.'},
+	{"--..--", ','},
+	{"---...", ':'},
+	{"..--..", '?'},
+	{".----.", '’'},
+	{"-....-", '–'},
+	{"-..-.", '/'},
+	{"-.--.", '('},
+	{"-.--.-", ')'},
+	{".-..-.", '"'},
+	{"-...-", '='},
+	{".-.-.", '+'},
+	{".--.-.", '@'},
 }
 
 // Node is a node in the decoding Trie.
@@ -251,13 +251,14 @@ func (t *Trie) Decode(morseCode string) (string, error) {
 
 		switch char {
 		case '.':
+			lastWasSpace = false
 			curr = t.advance(curr, 0)
 		case '-':
+			lastWasSpace = false
 			curr = t.advance(curr, 1)
 		case ' ', '\t', '\n', '\r':
 			t.commit(&builder, curr)
 			curr = rootIdx
-			lastWasSpace = false
 		case '/':
 			t.commit(&builder, curr)
 			curr = rootIdx
