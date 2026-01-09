@@ -56,6 +56,41 @@ func TestTrie_Decode(t *testing.T) {
 			wantErr: false,
 		},
 		{
+			name: "resume with accented e",
+			fields: fields{
+				pairs: morsetrie.MorseTable,
+			},
+			args: args{
+				input: ".-. ..-.. ... ..- -- ..-..",
+			},
+			want:    "RÉSUMÉ",
+			wantErr: false,
+		},
+		{
+			name: "punctuation",
+			fields: fields{
+				pairs: morsetrie.MorseTable,
+			},
+			args: args{
+				input: ".-.-.- --..-- ---... ..--.. .----. -....- -..-. " +
+					"-.--. -.--.- .-..-. -...- .-.-. .--.-.",
+			},
+			want:    ".,:?’–/()\"=+@",
+			wantErr: false,
+		},
+		{
+			name: "multiple consecutive word separators",
+			fields: fields{
+				pairs: morsetrie.MorseTable,
+			},
+			args: args{
+				input: "- .... . // --.- ..- .. -.-. -.- / / " +
+					"-... .-. --- .-- -. / ..-. --- -..-",
+			},
+			want:    "THE QUICK BROWN FOX",
+			wantErr: false,
+		},
+		{
 			name: "unknown_sequence",
 			fields: fields{
 				pairs: morsetrie.MorseTable,
@@ -64,6 +99,17 @@ func TestTrie_Decode(t *testing.T) {
 				input: "........",
 			},
 			want:    "?",
+			wantErr: false,
+		},
+		{
+			name: "mixed_valid_and_unknown",
+			fields: fields{
+				pairs: morsetrie.MorseTable,
+			},
+			args: args{
+				input: ".... . .-.. .-.. --- / ........ / .-- --- .-. .-.. -..",
+			},
+			want:    "HELLO ? WORLD",
 			wantErr: false,
 		},
 		{
