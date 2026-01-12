@@ -128,12 +128,12 @@ func TestTrie_Decode(t *testing.T) {
 		t.Run(testCase.name, func(t *testing.T) {
 			t.Parallel()
 
-			tr, err := morsetrie.BuildTrie(testCase.fields.pairs)
+			trie, err := morsetrie.BuildTrie(testCase.fields.pairs)
 			if err != nil {
 				t.Fatalf("BuildTrie() error = %v", err)
 			}
 
-			got, err := tr.Decode(testCase.args.input)
+			got, err := trie.Decode(testCase.args.input)
 			if (err != nil) != testCase.wantErr {
 				t.Errorf("Trie.Decode() error = %v, wantErr %v", err, testCase.wantErr)
 
