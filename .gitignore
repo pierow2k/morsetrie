@@ -99,3 +99,4 @@ bin/*
 !bin/.gitkeep
 dist/*
 !dist/.gitkeep
+Makefile
