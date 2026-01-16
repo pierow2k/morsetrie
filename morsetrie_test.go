@@ -5,195 +5,83 @@
 package morsetrie_test
 
 import (
-	"errors"
 	"testing"
 
 	"github.com/pierow2k/morsetrie"
 )
 
-// TestTrie_Decode_BuildTrie provides unit tests for the Decode method
-// using the BuildTrie function.
-func TestTrie_Decode_BuildTrie(t *testing.T) {
+// TestDecode tests the package-level decode function for each
+// character that is supported by the static trie.
+func TestDecode(t *testing.T) {
 	t.Parallel()
 
-	type fields struct {
-		pairs []morsetrie.MorsePair
-	}
+	morseCode := ".- / -... / -.-. / -.. / . / ..-.. / ..-. / --. / .... / " +
+		".. / .--- / -.- / .-.. / -- / -. / --- / .--. / --.- / .-. / ... / - / " +
+		"..- / ...- / .-- / -..- / -.-- / --.. / ----- / .---- / ..--- / ...-- / " +
+		"....- / ..... / -.... / --... / ---.. / ----. / .-.-.- / --..-- / " +
+		"---... / ..--.. / .----. / -....- / -..-. / -.--. / -.--.- / .-..-. / " +
+		"-...- / .-.-. / .--.-."
 
-	type args struct {
-		input string
-	}
+	want := "A B C D E É F G H I J K L M N O P Q R S T U V W X Y Z " +
+		"0 1 2 3 4 5 6 7 8 9 . , : ? ’ – / ( ) \" = + @"
 
-	tests := []struct {
-		name    string
-		fields  fields
-		args    args
-		want    string
-		wantErr bool
-	}{
-		{
-			name: "basic_sos",
-			fields: fields{
-				pairs: []morsetrie.MorsePair{
-					{Code: "...", R: 'S'},
-					{Code: "---", R: 'O'},
-				},
-			},
-			args: args{
-				input: "... --- ...",
-			},
-			want:    "SOS",
-			wantErr: false,
-		},
-		{
-			name: "standard_hello_world",
-			fields: fields{
-				pairs: morsetrie.MorseTable,
-			},
-			args: args{
-				input: ".... . .-.. .-.. --- / .-- --- .-. .-.. -..",
-			},
-			want:    "HELLO WORLD",
-			wantErr: false,
-		},
-		{
-			name: "resume with accented e",
-			fields: fields{
-				pairs: morsetrie.MorseTable,
-			},
-			args: args{
-				input: ".-. ..-.. ... ..- -- ..-..",
-			},
-			want:    "RÉSUMÉ",
-			wantErr: false,
-		},
-		{
-			name: "punctuation",
-			fields: fields{
-				pairs: morsetrie.MorseTable,
-			},
-			args: args{
-				input: ".-.-.- --..-- ---... ..--.. .----. -....- -..-. " +
-					"-.--. -.--.- .-..-. -...- .-.-. .--.-.",
-			},
-			want:    ".,:?’–/()\"=+@",
-			wantErr: false,
-		},
-		{
-			name: "multiple consecutive word separators",
-			fields: fields{
-				pairs: morsetrie.MorseTable,
-			},
-			args: args{
-				input: "- .... . // --.- ..- .. -.-. -.- / / " +
-					"-... .-. --- .-- -. / ..-. --- -..-",
-			},
-			want:    "THE QUICK BROWN FOX",
-			wantErr: false,
-		},
-		{
-			name: "unknown_sequence",
-			fields: fields{
-				pairs: morsetrie.MorseTable,
-			},
-			args: args{
-				input: "........",
-			},
-			want:    "?",
-			wantErr: false,
-		},
-		{
-			name: "mixed_valid_and_unknown",
-			fields: fields{
-				pairs: morsetrie.MorseTable,
-			},
-			args: args{
-				input: ".... . .-.. .-.. --- / ........ / .-- --- .-. .-.. -..",
-			},
-			want:    "HELLO ? WORLD",
-			wantErr: false,
-		},
-		{
-			name: "invalid_character",
-			fields: fields{
-				pairs: morsetrie.MorseTable,
-			},
-			args: args{
-				input: "abc",
-			},
-			want:    "",
-			wantErr: true,
-		},
-	}
-	for _, testCase := range tests {
-		t.Run(testCase.name, func(t *testing.T) {
-			t.Parallel()
-
-			// Build the trie using the pairs.
-			trie, err := morsetrie.BuildTrie(testCase.fields.pairs)
-			if err != nil {
-				t.Fatalf("BuildTrie() error = %v", err)
-			}
-
-			got, err := trie.Decode(testCase.args.input)
-			if (err != nil) != testCase.wantErr {
-				t.Errorf("Trie.Decode() error = %v, wantErr %v", err, testCase.wantErr)
-
-				return
-			}
-
-			if got != testCase.want {
-				t.Errorf("Trie.Decode() = %v, want %v", got, testCase.want)
-			}
-		})
+	result, _ := morsetrie.Decode(morseCode)
+	if result != want {
+		t.Errorf("TestDecode() = %v, want %v", result, want)
 	}
 }
 
-// TestBuildTrie provides unit tests for BuildTrie, specifically for the error
-// return path.
-func TestBuildTrie(t *testing.T) {
+// TestTrie_Decode provides unit tests for the Decode method.
+func TestTrie_Decode(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
 		name      string
-		pairs     []morsetrie.MorsePair
+		morseCode string
+		want      string
 		wantErr   bool
-		wantErrIs error
 	}{
 		{
-			name:    "valid_build",
-			pairs:   morsetrie.MorseTable,
-			wantErr: false,
+			name:      "SOS",
+			morseCode: "... --- ...",
+			want:      "SOS",
+			wantErr:   false,
 		},
 		{
-			name: "duplicate_code",
-			pairs: []morsetrie.MorsePair{
-				{Code: ".-", R: 'A'},
-				{Code: ".-", R: 'B'},
-			},
-			wantErr:   true,
-			wantErrIs: morsetrie.ErrDuplicate,
+			name:      "Hello World",
+			morseCode: ".... . .-.. .-.. --- / .-- --- .-. .-.. -..",
+			want:      "HELLO WORLD",
+			wantErr:   false,
 		},
 		{
-			name: "invalid_element",
-			pairs: []morsetrie.MorsePair{
-				{Code: ".*", R: 'A'},
-			},
+			name:      "Unknown Morse Code Sequence",
+			morseCode: "........",
+			want:      "?",
+			wantErr:   false,
+		},
+		{
+			name:      "Invalid Input",
+			morseCode: "abcd",
+			want:      "",
 			wantErr:   true,
-			wantErrIs: morsetrie.ErrInvalidElement,
 		},
 	}
 	for _, testCase := range tests {
 		t.Run(testCase.name, func(t *testing.T) {
 			t.Parallel()
-
-			_, err := morsetrie.BuildTrie(testCase.pairs)
-			if (err != nil) != testCase.wantErr {
-				t.Errorf("BuildTrie() error = %v, wantErr %v", err, testCase.wantErr)
+			trie := morsetrie.StaticTrie
+			got, gotErr := trie.Decode(testCase.morseCode)
+			if gotErr != nil {
+				if !testCase.wantErr {
+					t.Errorf("Decode() failed: %v", gotErr)
+				}
+				return
 			}
-
-			if testCase.wantErrIs != nil && !errors.Is(err, testCase.wantErrIs) {
-				t.Errorf("BuildTrie() error = %v, wantErrIs %v", err, testCase.wantErrIs)
+			if testCase.wantErr {
+				t.Fatal("Decode() succeeded unexpectedly")
+			}
+			if got != testCase.want {
+				t.Errorf("Decode() = %v, want %v", got, testCase.want)
 			}
 		})
 	}
