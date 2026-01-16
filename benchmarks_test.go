@@ -9,7 +9,7 @@ import (
 )
 
 // input is the morse code of the text:
-// THE QUICK BROWN FOOX JUMPS OVER THE LAZY DOG 0123456789
+// THE QUICK BROWN FOOX JUMPS OVER THE LAZY DOG 0123456789.
 const input = "- .... . / --.- ..- .. -.-. -.- / -... .-. --- .-- -. / " +
 	"..-. --- -..-. --- -..- / .--- ..- -- .--. ... / --- ...- . .-. / " +
 	"- .... . / .-.. .- --.. -.-- / -.. --- --. / ----- .---- ..--- " +
@@ -34,5 +34,32 @@ func BenchmarkDecode(b *testing.B) {
 func BenchmarkLoadStaticTrie(b *testing.B) {
 	for b.Loop() {
 		trieSink = morsetrie.StaticTrie
+	}
+}
+
+// BenchmarkGenerateCyclicRotations measures the performance of the
+// GenerateCyclicRotations function.
+func BenchmarkGenerateCyclicRotations(b *testing.B) {
+	sequence := "....--."
+	reverse := true
+
+	for b.Loop() {
+		rotations := morsetrie.GenerateCyclicRotations(sequence, reverse)
+		_ = rotations
+	}
+}
+
+// BenchmarkFindCandidates measures the performance of the FindCandidates
+// function.
+func BenchmarkFindCandidates(b *testing.B) {
+	trie := morsetrie.StaticTrie
+
+	sequence := "....--."
+
+	// FindCandidates returns every possible decoding for the Morse code
+	// sequence.
+	for b.Loop() {
+		candidates := trie.FindCandidates(sequence)
+		_ = candidates
 	}
 }

@@ -1,7 +1,7 @@
 // Package morsetrie_test provides black-box tests, benchmarks, and runnable
 // examples for the public API of the morsetrie package.
 //
-//nolint:funlen
+
 package morsetrie_test
 
 import (
@@ -69,19 +69,140 @@ func TestTrie_Decode(t *testing.T) {
 	for _, testCase := range tests {
 		t.Run(testCase.name, func(t *testing.T) {
 			t.Parallel()
+
 			trie := morsetrie.StaticTrie
+
 			got, gotErr := trie.Decode(testCase.morseCode)
 			if gotErr != nil {
 				if !testCase.wantErr {
 					t.Errorf("Decode() failed: %v", gotErr)
 				}
+
 				return
 			}
+
 			if testCase.wantErr {
 				t.Fatal("Decode() succeeded unexpectedly")
 			}
+
 			if got != testCase.want {
 				t.Errorf("Decode() = %v, want %v", got, testCase.want)
+			}
+		})
+	}
+}
+
+func TestFindCandidates(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name      string
+		morseCode string
+		want      []string
+	}{
+		{
+			name:      "Single Dot",
+			morseCode: ".",
+			want:      []string{"E"},
+		},
+		{
+			name:      "Single Dash",
+			morseCode: "-",
+			want:      []string{"T"},
+		},
+		{
+			name:      "Two Dots",
+			morseCode: "..",
+			want:      []string{"I", "EE"},
+		},
+		{
+			name:      "Dot Dash",
+			morseCode: ".-",
+			want:      []string{"A", "ET"},
+		},
+		{
+			name:      "Three Dots",
+			morseCode: "...",
+			want:      []string{"S", "IE", "EI", "EEE"},
+		},
+		{
+			name:      "Invalid Characters",
+			morseCode: "ABC",
+			want:      nil,
+		},
+	}
+	for _, testCase := range tests {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			got := morsetrie.FindCandidates(testCase.morseCode)
+
+			if len(got) != len(testCase.want) {
+				t.Errorf("FindCandidates() got %d candidates, want %d", len(got), len(testCase.want))
+
+				return
+			}
+
+			for i := range got {
+				if got[i] != testCase.want[i] {
+					t.Errorf("FindCandidates() candidate[%d] = %v, want %v", i, got[i], testCase.want[i])
+				}
+			}
+		})
+	}
+}
+
+func TestGenerateCyclicRotations(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name string // description of this test case
+		// Named input parameters for target function.
+		sequence string
+		reverse  bool
+		want     []string
+	}{
+		{
+			name:     "Empty Sequence",
+			sequence: "",
+			reverse:  false,
+			want:     nil,
+		},
+		{
+			name:     "Single Character",
+			sequence: "A",
+			reverse:  false,
+			want:     []string{"A"},
+		},
+		{
+			name:     "Two Characters",
+			sequence: "AB",
+			reverse:  false,
+			want:     []string{"AB", "BA"},
+		},
+		{
+			name:     "Three Characters with Reverse",
+			sequence: "ABC",
+			reverse:  true,
+			want:     []string{"ABC", "BCA", "CAB", "CBA", "BAC", "ACB"},
+		},
+	}
+	for _, testCase := range tests {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			got := morsetrie.GenerateCyclicRotations(testCase.sequence, testCase.reverse)
+
+			if len(got) != len(testCase.want) {
+				t.Errorf("FindCandidates() got %d candidates, want %d", len(got), len(testCase.want))
+
+				return
+			}
+
+			for i := range got {
+				if got[i] != testCase.want[i] {
+					t.Errorf("GenerateCyclicRotations() sequence[%d] = %v, want %v", i, got[i], testCase.want[i])
+				}
 			}
 		})
 	}

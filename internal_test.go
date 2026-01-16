@@ -1,7 +1,7 @@
 // Package morsetrie provides white-box tests for unexported functions in
 // the morsetrie package.
 //
-//nolint:funlen
+
 package morsetrie
 
 import (
@@ -72,6 +72,51 @@ func TestTrie_commit(t *testing.T) {
 
 			if got := builder.String(); got != testCase.want {
 				t.Errorf("commit() = %q, want %q", got, testCase.want)
+			}
+		})
+	}
+}
+
+//nolint:gosmopolitan
+func Test_reverseString(t *testing.T) {
+	t.Parallel()
+
+	type args struct {
+		s string
+	}
+
+	tests := []struct {
+		name string
+		args args
+		want string
+	}{
+		{
+			name: "empty_string",
+			args: args{s: ""},
+			want: "",
+		},
+		{
+			name: "single_character",
+			args: args{s: "a"},
+			want: "a",
+		},
+		{
+			name: "alphabet",
+			args: args{s: "abcdefghijklmnopqrstuvwxyz"},
+			want: "zyxwvutsrqponmlkjihgfedcba",
+		},
+		{
+			name: "non_ascii",
+			args: args{s: "你好世界"},
+			want: "界世好你",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			if got := reverseString(tt.args.s); got != tt.want {
+				t.Errorf("reverseString() = %v, want %v", got, tt.want)
 			}
 		})
 	}

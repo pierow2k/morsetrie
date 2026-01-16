@@ -90,3 +90,41 @@ func ExampleTrie_Decode_prosign() {
 	// Prosign:
 	// ?
 }
+
+// ExampleTrie_FindCandidates provides an example to demonstrate the use of
+// the FindCandidates method to find potential candidates for a Morse code
+// sequence.
+func ExampleTrie_FindCandidates() {
+	trie := morsetrie.StaticTrie
+
+	sequence := "....--."
+
+	// FindCandidates returns every possible decoding for the Morse code
+	// sequence.
+	candidates := trie.FindCandidates(sequence)
+
+	// For demonstration purposes we set expectedCandidates. Typically,
+	// the resulting candidate would be unknown and would be passed
+	// downstream for further processing.
+	expectedCandidates := []string{
+		"4N", "4TE", "HG", "HME", "HTN", "HTTE", "SP", "SWE", "SAN", "SATE",
+		"SEG", "SEME", "SETN", "SETTE", "IUN", "IUTE", "IIG", "IIME", "IITN",
+		"IITTE", "IEP", "IEWE", "IEAN", "IEATE", "IEEG", "IEEME", "IEETN",
+		"IEETTE", "E3E", "EVN", "EVTE", "ESG", "ESME", "ESTN", "ESTTE",
+		"EIP", "EIWE", "EIAN", "EIATE", "EIEG", "EIEME", "EIETN", "EIETTE",
+		"EEUN", "EEUTE", "EEIG", "EEIME", "EEITN", "EEITTE", "EEEP", "EEEWE",
+		"EEEAN", "EEEATE", "EEEEG", "EEEEME", "EEEETN", "EEEETTE",
+	}
+
+	for i := range candidates {
+		if expectedCandidates[i] != candidates[i] {
+			fmt.Printf("Candidate %d does not match. Expected %s, got %s.",
+				i, expectedCandidates[i], candidates[i])
+		}
+	}
+
+	fmt.Println("Candidates match!")
+
+	// Output:
+	// Candidates match!
+}
