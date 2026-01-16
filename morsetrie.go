@@ -2,7 +2,6 @@
 package morsetrie
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"math"
@@ -112,36 +111,6 @@ type Node struct {
 // Trie is a compact, array-backed Morse decode Trie.
 type Trie struct {
 	Nodes []Node
-}
-
-// MarshalJSON customizes the JSON representation of a Node.
-// It converts the Val rune into a human-readable string.
-func (n Node) MarshalJSON() ([]byte, error) {
-	var valStr string
-	if n.Val != 0 {
-		valStr = string(n.Val)
-	}
-
-	// We use an anonymous struct to define the JSON shape.
-	return json.Marshal(struct {
-		Val   string   `json:"val"`
-		Child [2]int16 `json:"child"`
-	}{
-		Val:   valStr,
-		Child: n.Child,
-	})
-}
-
-// ToJSON returns the Trie and all its nodes as a formatted JSON string.
-func (t *Trie) ToJSON() (string, error) {
-	if t == nil {
-		return "null", nil
-	}
-	bytes, err := json.MarshalIndent(t, "", "  ")
-	if err != nil {
-		return "", err
-	}
-	return string(bytes), nil
 }
 
 // NewTrie creates a new, empty Morse decode Trie.
@@ -311,4 +280,22 @@ func (t *Trie) Decode(morseCode string) (string, error) {
 	t.commit(&builder, curr)
 
 	return builder.String(), nil
+}
+
+// Decode provides a package-level decode function that builds a trie using
+// the default International Morse trie to decode a string.
+func Decode(morseCode string) (string, error) {
+	DefaultTrie, err := BuildTrie(MorseTable)
+	if err != nil {
+		return "", err
+	}
+
+	return DefaultTrie.Decode(morseCode)
+}
+
+// DecodeStatic provides a package-level decode function that uses the
+// static trie to decode a string.
+func DecodeStatic(morseCode string) (string, error) {
+
+	return StaticTrie.Decode(morseCode)
 }
