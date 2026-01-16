@@ -42,7 +42,7 @@ type MorsePair struct {
 	R    rune
 }
 
-// MorseTable is the ITU M.1677 standard International Morse code mapping for.
+// MorseTable is the ITU M.1677 standard International Morse code mapping.
 var MorseTable = []MorsePair{
 	{".-", 'A'},
 	{"-...", 'B'},
