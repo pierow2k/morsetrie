@@ -4,43 +4,24 @@ package morsetrie
 import (
 	"errors"
 	"fmt"
-	"math"
 	"strings"
 	"unicode/utf8"
 )
 
 const (
-	// defaultTrieCapacity is the initial allocation size for the Trie node slice.
-	defaultTrieCapacity = 64
 	// decodeAllocDivisor estimates decoded text size (approx 1/3 of morse input).
 	decodeAllocDivisor = 3
-)
 
-const (
 	rootIdx     = int16(0)
 	invalidIdx  = int16(-2) // Represents traversing off the trie.
 	missingNode = int16(-1) // Represents a child definition that doesn't exist.
 )
 
 var (
-	// ErrInvalidElement is returned when a code string contains characters
-	// other than '.' or '-'.
-	ErrInvalidElement = errors.New("invalid morse element")
-	// ErrDuplicate is returned when a morse code sequence is registered twice.
-	ErrDuplicate = errors.New("duplicate morse code")
-	// ErrUnexpectedChar is returned when the input string contains
+	// ErrUnexpectedChar is returned when the morse code string contains
 	// unsupported characters.
 	ErrUnexpectedChar = errors.New("unexpected character in morse input")
-	// ErrTrieFull is returned when the Trie exceeds the maximum number of nodes
-	// addressable by int16.
-	ErrTrieFull = errors.New("trie capacity exceeded")
 )
-
-// MorsePair is a single Morse-code mapping entry.
-type MorsePair struct {
-	Code string
-	R    rune
-}
 
 // Node is a node in the decoding Trie.
 type Node struct {
@@ -55,83 +36,6 @@ type Node struct {
 // Trie is a compact, array-backed Morse decode Trie.
 type Trie struct {
 	Nodes []Node
-}
-
-// NewTrie creates a new, empty Morse decode Trie.
-func NewTrie() *Trie {
-	trie := &Trie{Nodes: make([]Node, 1, defaultTrieCapacity)}
-
-	// Initialize root children to indicate they are missing.
-	trie.Nodes[rootIdx].Child[0] = missingNode
-	trie.Nodes[rootIdx].Child[1] = missingNode
-
-	return trie
-}
-
-// add inserts a Morse code sequence and its corresponding rune into the Trie.
-// It traverses the Trie based on the input code ('.' for child 0, '-' for child 1),
-// creating new nodes as necessary.
-//
-// It returns ErrInvalidElement if the code contains characters other than '.' or '-'.
-// It returns ErrDuplicate if the code sequence is already registered.
-// It returns ErrTrieFull if the Trie capacity is exceeded.
-func (t *Trie) add(code string, symbol rune) error {
-	idx := rootIdx
-
-	for charIdx := range len(code) {
-		var bit int
-
-		switch code[charIdx] {
-		case '.':
-			bit = 0
-		case '-':
-			bit = 1
-		default:
-			return fmt.Errorf("%w: %q in %q", ErrInvalidElement, code[charIdx], code)
-		}
-
-		next := t.Nodes[idx].Child[bit]
-		if next == missingNode {
-			// Check for integer overflow before casting to int16.
-			if len(t.Nodes) > math.MaxInt16 {
-				return ErrTrieFull
-			}
-
-			// Disabled gosec linter warning. Bounds are checked prior to conversion.
-			next = int16(len(t.Nodes)) //nolint:gosec
-
-			// Create new node with missing children.
-			t.Nodes = append(t.Nodes, Node{Child: [2]int16{missingNode, missingNode}})
-			t.Nodes[idx].Child[bit] = next
-		}
-
-		idx = next
-	}
-
-	if t.Nodes[idx].Val != 0 {
-		return fmt.Errorf("%w: %q (already maps to %q)", ErrDuplicate, code, t.Nodes[idx].Val)
-	}
-
-	t.Nodes[idx].Val = symbol
-
-	return nil
-}
-
-// BuildTrie constructs a new Trie from a slice of MorsePair. It initializes a
-// new Trie and populates it by adding each pair from the input slice.
-//
-// An error is returned if the input pairs contain invalid data, such as
-// duplicate codes (ErrDuplicate) or codes with invalid characters
-// (ErrInvalidElement).
-func BuildTrie(pairs []MorsePair) (*Trie, error) {
-	trie := NewTrie()
-	for _, p := range pairs {
-		if err := trie.add(p.Code, p.R); err != nil {
-			return nil, err
-		}
-	}
-
-	return trie, nil
 }
 
 // advance returns the index of the child node for the given bit (0 for
@@ -229,20 +133,9 @@ func (t *Trie) Decode(morseCode string) (string, error) {
 	return builder.String(), nil
 }
 
-// Decode provides a package-level decode function that builds a trie using
-// the default International Morse trie to decode a string.
-func Decode(morseCode string) (string, error) {
-	DefaultTrie, err := BuildTrie(MorseTable)
-	if err != nil {
-		return "", err
-	}
-
-	return DefaultTrie.Decode(morseCode)
-}
-
-// DecodeStatic provides a package-level decode function that uses the
+// Decode provides a package-level decode function that uses the
 // static trie to decode a string.
-func DecodeStatic(morseCode string) (string, error) {
+func Decode(morseCode string) (string, error) {
 
 	return StaticTrie.Decode(morseCode)
 }
