@@ -20,7 +20,7 @@ var (
 	decodeSink string
 )
 
-// BenchmarkDecode measures the performance of the Decode function.
+// BenchmarkDecode measures the performance of the Decode method.
 // It does not include the time to build the trie, measuring only
 // the process of decoding.
 func BenchmarkDecode(b *testing.B) {
@@ -35,7 +35,7 @@ func BenchmarkDecode(b *testing.B) {
 }
 
 // BenchmarkDecode_LoadingTrie measures the performance of the Decode
-// function and includes the process of building the trie using the data
+// method and includes the process of building the trie using the data
 // from MorseTable.
 func BenchmarkDecode_LoadingTrie(b *testing.B) {
 	for b.Loop() {
@@ -50,7 +50,7 @@ func BenchmarkDecode_LoadingTrie(b *testing.B) {
 }
 
 // BenchmarkDecode_Using_StaticTrie measures the performance of the Decode
-// function using the static trie.
+// method using the static trie.
 func BenchmarkDecode_Using_StaticTrie(b *testing.B) {
 	trie := morsetrie.StaticTrie
 	for b.Loop() {
