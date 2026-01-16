@@ -2,6 +2,7 @@
 package morsetrie
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"strings"
@@ -204,40 +205,38 @@ func reverseString(s string) string {
 	return string(runes)
 }
 
-// traverse recursively explores the trie to build all valid letter combinations.
+// traverse recursively explores the trie to build all valid letter combinations
+// from a Morse code sequence without separators.
 //
-// It solves the "ambiguous segmentation" problem inherent in separator-less
-// Morse code by exploring two simultaneous strategies at every step:
+// It uses backtracking with a shared buffer to efficiently explore all possible
+// segmentations. At each step, it pursues two simultaneous strategies:
 //
-//  1. Continue: Treat the current symbols as a prefix for a longer letter
-//     (e.g., interpreting '.' as the start of 'A' ".-" rather than 'E').
+//  1. Continue: Treat current symbols as a prefix for a longer letter.
+//  2. Branch: If current path forms a valid letter, commit it and restart at root.
 //
-//  2. Branch: If the current path forms a valid letter, commit to that letter
-//     (add it to the result) and restart traversal at the root for the next
-//     symbols.
+// The mark/restore pattern avoids allocations at branch points: when a valid
+// letter is found, the buffer position is saved, the letter is appended,
+// recursion proceeds, and the buffer is truncated back to the saved position.
 //
 // Parameters:
-//   - remaining: The Morse symbols yet to be processed.
-//   - current: The decoded string accumulated so far.
-//   - nodeIdx: The current position in the trie (index into t.Nodes).
-//   - results: A pointer to the slice accumulating valid decoding results.
-func (t *Trie) traverse(remaining, current string, nodeIdx int16, results *[]string) {
+//   - sequence: The full Morse code string being decoded.
+//   - idx: Current position in the sequence.
+//   - buf: Shared buffer for building decoded strings (reused across branches).
+//   - nodeIdx: Current position in the trie (index into t.Nodes).
+//   - results: Pointer to slice accumulating valid decodings.
+func (t *Trie) traverse(sequence string, idx int, buf *bytes.Buffer, nodeIdx int16, results *[]string) {
 	// Base case: All symbols have been consumed.
-	if remaining == "" {
-		// Valid decodings must end on a letter boundary.
-		// If we are back at rootIdx, it means the previous symbol completed
-		// a valid letter (triggering a branch) or the string was empty.
-		// If we are deep in the trie (nodeIdx != rootIdx), the sequence ended
-		// with an incomplete letter code (e.g., trailing "." without termination).
+	if idx == len(sequence) {
+		// Valid decodings must end on a letter boundary (back at root).
+		// Incomplete sequences end mid-trie and are discarded.
 		if nodeIdx == rootIdx {
-			*results = append(*results, current)
+			*results = append(*results, buf.String())
 		}
 
 		return
 	}
 
-	// Determine which branch of the trie to take.
-	symbol := remaining[0]
+	symbol := sequence[idx]
 
 	var bit int
 
@@ -247,56 +246,53 @@ func (t *Trie) traverse(remaining, current string, nodeIdx int16, results *[]str
 	case '-':
 		bit = 1
 	default:
-		// Invalid characters terminate this path. Given the constraint that
-		// FindCandidates expects valid Morse symbols, this acts as a safeguard.
+		// Invalid characters terminate this path.
 		return
 	}
 
-	// Look up the child node.
 	childIdx := t.Nodes[nodeIdx].Child[bit]
-
-	// Dead end: The sequence follows a path that doesn't exist in the trie.
-	// This path is abandoned.
 	if childIdx == missingNode {
+		// Dead end: sequence follows a path that doesn't exist in the trie.
 		return
 	}
 
-	nextRemaining := remaining[1:]
+	nextIdx := idx + 1
 
 	// STRATEGY 1: CONTINUE
-	// We do not commit to a letter yet. We simply move deeper into the trie
-	// with the same accumulated `current` string.
-	t.traverse(nextRemaining, current, childIdx, results)
+	// Extend the current prefix without committing to a letter boundary.
+	t.traverse(sequence, nextIdx, buf, childIdx, results)
 
 	// STRATEGY 2: BRANCH
-	// Check if the current path forms a valid letter.
-	// Val != 0 indicates a valid letter ends at childIdx.
+	// If the current path forms a valid letter, commit to it and restart.
 	if t.Nodes[childIdx].Val != 0 {
-		// We commit to this letter by appending it to `current` and restarting
-		// the traversal at `rootIdx` for the `nextRemaining` symbols.
-		newCurrent := current + string(t.Nodes[childIdx].Val)
-		t.traverse(nextRemaining, newCurrent, rootIdx, results)
+		mark := buf.Len()
+		buf.WriteRune(t.Nodes[childIdx].Val)
+		t.traverse(sequence, nextIdx, buf, rootIdx, results)
+		buf.Truncate(mark) // Restore buffer for sibling branches.
 	}
 }
 
-// FindCandidates returns all valid decodings (segmentations) for a Morse code
-// sequence. Unlike Decode, which requires separators, this function attempts
-// to segment the raw symbol stream into all possible letter combinations.
+// FindCandidates returns all valid decodings for a Morse code sequence
+// without separators. It attempts to segment the raw symbol stream into
+// every possible letter combination.
 //
 // This is useful for decoding ambiguous inputs, such as Morse code bracelets,
-// where word boundaries and letter boundaries are not marked.
+// where letter boundaries are not marked.
 //
 // Parameters:
 //   - sequence: A string containing only Morse symbols ('.' and '-').
 //
 // Returns:
-//   - A slice of strings containing all valid decodings. If the sequence
-//     cannot be fully segmented into valid letters, an empty slice is returned.
+//   - A slice of all valid decodings. Returns an empty slice if the sequence
+//     cannot be fully segmented into valid letters.
 func (t *Trie) FindCandidates(sequence string) []string {
-	// We do not pre-allocate the results slice capacity because the number of
-	// valid candidates varies wildly based on sequence length and ambiguity.
-	var results []string
-	t.traverse(sequence, "", rootIdx, &results)
+	var (
+		results []string
+		buf     bytes.Buffer
+	)
+
+	buf.Grow(len(sequence) / decodeAllocDivisor)
+	t.traverse(sequence, 0, &buf, rootIdx, &results)
 
 	return results
 }
