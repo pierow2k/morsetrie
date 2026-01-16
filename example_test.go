@@ -8,6 +8,40 @@ import (
 	"github.com/pierow2k/morsetrie"
 )
 
+// ExampleDecode provides an example to demonstrate the package-level
+// Decode function.
+func ExampleDecode() {
+	morseCode := "- .... .. ... / .. ... / -- --- .-. ... . - .-. .. ."
+
+	// Build a trie and decode the morse code.
+	text, err := morsetrie.Decode(morseCode)
+	if err != nil {
+		panic(err)
+	}
+
+	fmt.Println(text)
+
+	// Output:
+	// THIS IS MORSETRIE
+}
+
+// ExampleDecodeStatic provides an example to demonstrate the package-level
+// DecodeStatic function.
+func ExampleDecodeStatic() {
+	morseCode := "- .... .. ... / .. ... / -- --- .-. ... . - .-. .. ."
+
+	// Use the static trie to decode the morse code.
+	text, err := morsetrie.DecodeStatic(morseCode)
+	if err != nil {
+		panic(err)
+	}
+
+	fmt.Println(text)
+
+	// Output:
+	// THIS IS MORSETRIE
+}
+
 // ExampleTrie_Decode_alphanumeric provides an example to demonstrate the
 // use of the Decode method to decode alphanumeric characters.
 func ExampleTrie_Decode_alphanumeric() {
