@@ -169,7 +169,10 @@ func (t *Trie) commit(builder *strings.Builder, curr int16) {
 	val := t.Nodes[curr].Val
 	if val == 0 {
 		builder.WriteByte('?')
-	} else if val < utf8.RuneSelf {
+		return
+	}
+
+	if val < utf8.RuneSelf {
 		// Avoid WriteRune for ASCII values
 		builder.WriteByte(byte(val))
 	} else {
