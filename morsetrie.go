@@ -139,6 +139,72 @@ func Decode(morseCode string) (string, error) {
 	return StaticTrie.Decode(morseCode)
 }
 
+// GenerateCyclicRotations returns all cyclic permutations of a sequence.
+//
+// Because Morse code bracelets are circular, there is no defined starting
+// point for the message. This function addresses that ambiguity by generating
+// every possible rotation (shifting the start index from 0 to N-1).
+//
+// If the reverse flag is true, the function also generates rotations for the
+// reversed sequence. This accounts for the additional ambiguity of reading
+// direction (clockwise vs. counter-clockwise).
+//
+// The resulting slice contains N forward rotations followed by N reverse
+// rotations (if applicable), totaling 2N elements.
+func GenerateCyclicRotations(sequence string, reverse bool) []string {
+	const doubleSize = 2
+
+	sequenceLength := len(sequence)
+	if sequenceLength == 0 {
+		return nil
+	}
+
+	// Pre-allocate capacity to avoid repeated slice growth.
+	// We need space for N forward rotations, plus N reverse if requested.
+	capacity := sequenceLength
+	if reverse {
+		capacity = doubleSize * sequenceLength
+	}
+
+	rotations := make([]string, 0, capacity)
+
+	// Generate forward rotations:
+	// For each index i, the sequence is split and swapped:
+	//   sequence[i:] (suffix) + sequence[:i] (prefix)
+	for i := range sequenceLength {
+		rotations = append(rotations, sequence[i:]+sequence[:i])
+	}
+
+	if reverse {
+		// Generate reverse rotations to handle reading-direction ambiguity.
+		// A bracelet read backwards produces a different Morse string entirely.
+		reversed := reverseString(sequence)
+		for i := range sequenceLength {
+			rotations = append(rotations, reversed[i:]+reversed[:i])
+		}
+	}
+
+	return rotations
+}
+
+// reverseString returns a new string with the characters in reverse order.
+//
+// It converts the input to a rune slice to correctly handle multi-byte
+// Unicode characters. While Morse code uses only single-byte ASCII,
+// this approach ensures the function is robust for any string input.
+func reverseString(s string) string {
+	// Convert to runes to operate on Unicode code points rather than bytes.
+	// This prevents corrupting multi-byte characters during the swap.
+	runes := []rune(s)
+
+	// Swap characters from the outside in using two pointers.
+	for i, j := 0, len(runes)-1; i < j; i, j = i+1, j-1 {
+		runes[i], runes[j] = runes[j], runes[i]
+	}
+
+	return string(runes)
+}
+
 // traverse recursively explores the trie to build all valid letter combinations
 // from a Morse code sequence without separators.
 //
@@ -221,18 +287,18 @@ func (t *Trie) traverse(sequence string, idx int, buf *bytes.Buffer, nodeIdx int
 //     cannot be fully segmented into valid letters.
 func (t *Trie) FindCandidates(sequence string) []string {
 	var (
-		candidates []string
-		buf        bytes.Buffer
+		results []string
+		buf     bytes.Buffer
 	)
 
 	buf.Grow(len(sequence) / decodeAllocDivisor)
-	t.traverse(sequence, 0, &buf, rootIdx, &candidates)
+	t.traverse(sequence, 0, &buf, rootIdx, &results)
 
-	return candidates
+	return results
 }
 
-// FindCandidates provides a package-level function to return all valid
-// decodings for a Morse code sequence using the default trie.
+// FindCandidates provides a package-level decode function to return all
+// valid decodings for a Morse code sequence.
 func FindCandidates(morseCode string) []string {
 	return StaticTrie.FindCandidates(morseCode)
 }
