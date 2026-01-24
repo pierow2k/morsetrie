@@ -15,6 +15,8 @@ const input = "- .... . / --.- ..- .. -.-. -.- / -... .-. --- .-- -. / " +
 	"- .... . / .-.. .- --.. -.-- / -.. --- --. / ----- .---- ..--- " +
 	"...-- ....- ..... -.... --... ---.. ----."
 
+const sequence = "....--."
+
 var (
 	trieSink   *morsetrie.Trie
 	decodeSink string
@@ -40,7 +42,6 @@ func BenchmarkLoadStaticTrie(b *testing.B) {
 // BenchmarkGenerateCyclicRotations measures the performance of the
 // GenerateCyclicRotations function.
 func BenchmarkGenerateCyclicRotations(b *testing.B) {
-	sequence := "....--."
 	reverse := true
 
 	for b.Loop() {
@@ -53,8 +54,6 @@ func BenchmarkGenerateCyclicRotations(b *testing.B) {
 // function.
 func BenchmarkFindCandidates(b *testing.B) {
 	trie := morsetrie.StaticTrie
-
-	sequence := "....--."
 
 	// FindCandidates returns every possible decoding for the Morse code
 	// sequence.
