@@ -94,11 +94,10 @@ func ExampleTrie_Decode_prosign() {
 // ExampleTrie_FindCandidates provides an example to demonstrate the use of
 // the FindCandidates method to find potential candidates for a Morse code
 // sequence.
-// nolint:goconst
 func ExampleTrie_FindCandidates() {
 	trie := morsetrie.StaticTrie
 
-	sequence := "....--."
+	const sequence = "....--."
 
 	// FindCandidates returns every possible decoding for the Morse code
 	// sequence.
