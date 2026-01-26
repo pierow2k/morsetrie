@@ -106,17 +106,22 @@ func Test_reverseString(t *testing.T) {
 			want: "zyxwvutsrqponmlkjihgfedcba",
 		},
 		{
+			name: "morse sequence",
+			args: args{s: "-...............--....-"},
+			want: "-....--...............-",
+		},
+		{
 			name: "non_ascii",
 			args: args{s: "你好世界"},
 			want: "界世好你",
 		},
 	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
+	for _, testCase := range tests {
+		t.Run(testCase.name, func(t *testing.T) {
 			t.Parallel()
 
-			if got := reverseString(tt.args.s); got != tt.want {
-				t.Errorf("reverseString() = %v, want %v", got, tt.want)
+			if got := reverseString(testCase.args.s); got != testCase.want {
+				t.Errorf("reverseString() = %v, want %v", got, testCase.want)
 			}
 		})
 	}
