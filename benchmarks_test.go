@@ -39,17 +39,6 @@ func BenchmarkLoadStaticTrie(b *testing.B) {
 	}
 }
 
-// BenchmarkGenerateCyclicRotations measures the performance of the
-// GenerateCyclicRotations function.
-func BenchmarkGenerateCyclicRotations(b *testing.B) {
-	reverse := true
-
-	for b.Loop() {
-		rotations := morsetrie.GenerateCyclicRotations(sequence, reverse)
-		_ = rotations
-	}
-}
-
 // BenchmarkFindCandidates measures the performance of the FindCandidates
 // function.
 func BenchmarkFindCandidates(b *testing.B) {
