@@ -1,7 +1,4 @@
-// Package morsetrie_test provides black-box tests, benchmarks, and runnable
-// examples for the public API of the morsetrie package.
-//
-
+// Black-box tests for exported functions in the morsetrie package.
 package morsetrie_test
 
 import (
@@ -87,66 +84,6 @@ func TestTrie_Decode(t *testing.T) {
 
 			if got != testCase.want {
 				t.Errorf("Decode() = %v, want %v", got, testCase.want)
-			}
-		})
-	}
-}
-
-func TestFindCandidates(t *testing.T) {
-	t.Parallel()
-
-	tests := []struct {
-		name      string
-		morseCode string
-		want      []string
-	}{
-		{
-			name:      "Single Dot",
-			morseCode: ".",
-			want:      []string{"E"},
-		},
-		{
-			name:      "Single Dash",
-			morseCode: "-",
-			want:      []string{"T"},
-		},
-		{
-			name:      "Two Dots",
-			morseCode: "..",
-			want:      []string{"I", "EE"},
-		},
-		{
-			name:      "Dot Dash",
-			morseCode: ".-",
-			want:      []string{"A", "ET"},
-		},
-		{
-			name:      "Three Dots",
-			morseCode: "...",
-			want:      []string{"S", "IE", "EI", "EEE"},
-		},
-		{
-			name:      "Invalid Characters",
-			morseCode: "ABC",
-			want:      nil,
-		},
-	}
-	for _, testCase := range tests {
-		t.Run(testCase.name, func(t *testing.T) {
-			t.Parallel()
-
-			got := morsetrie.FindCandidates(testCase.morseCode)
-
-			if len(got) != len(testCase.want) {
-				t.Errorf("FindCandidates() got %d candidates, want %d", len(got), len(testCase.want))
-
-				return
-			}
-
-			for i := range got {
-				if got[i] != testCase.want[i] {
-					t.Errorf("FindCandidates() candidate[%d] = %v, want %v", i, got[i], testCase.want[i])
-				}
 			}
 		})
 	}

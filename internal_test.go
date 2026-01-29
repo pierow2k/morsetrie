@@ -1,7 +1,4 @@
-// Package morsetrie provides white-box tests for unexported functions in
-// the morsetrie package.
-//
-
+// White-box tests for unexported functions in the morsetrie package.
 package morsetrie
 
 import (

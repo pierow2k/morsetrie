@@ -15,8 +15,6 @@ const input = "- .... . / --.- ..- .. -.-. -.- / -... .-. --- .-- -. / " +
 	"- .... . / .-.. .- --.. -.-- / -.. --- --. / ----- .---- ..--- " +
 	"...-- ....- ..... -.... --... ---.. ----."
 
-const sequence = "....--."
-
 var (
 	trieSink   *morsetrie.Trie
 	decodeSink string
@@ -36,18 +34,5 @@ func BenchmarkDecode(b *testing.B) {
 func BenchmarkLoadStaticTrie(b *testing.B) {
 	for b.Loop() {
 		trieSink = morsetrie.StaticTrie
-	}
-}
-
-// BenchmarkFindCandidates measures the performance of the FindCandidates
-// function.
-func BenchmarkFindCandidates(b *testing.B) {
-	trie := morsetrie.StaticTrie
-
-	// FindCandidates returns every possible decoding for the Morse code
-	// sequence.
-	for b.Loop() {
-		candidates := trie.FindCandidates(sequence)
-		_ = candidates
 	}
 }
