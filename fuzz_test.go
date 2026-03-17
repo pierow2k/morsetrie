@@ -1,5 +1,4 @@
-// Package morsetrie_test provides black-box tests, benchmarks, and runnable
-// examples for the public API of the morsetrie package.
+// Fuzz tests for the public API of the morsetrie package.
 package morsetrie_test
 
 import (

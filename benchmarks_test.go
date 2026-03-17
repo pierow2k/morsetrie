@@ -1,5 +1,4 @@
-// Package morsetrie_test provides black-box tests and runnable examples
-// for the public API of the morsetrie package.
+// Benchmarks for the public API of the morsetrie package.
 package morsetrie_test
 
 import (
@@ -8,24 +7,20 @@ import (
 	"github.com/pierow2k/morsetrie"
 )
 
-// input is the morse code of the text:
-// THE QUICK BROWN FOOX JUMPS OVER THE LAZY DOG 0123456789.
-const input = "- .... . / --.- ..- .. -.-. -.- / -... .-. --- .-- -. / " +
-	"..-. --- -..-. --- -..- / .--- ..- -- .--. ... / --- ...- . .-. / " +
-	"- .... . / .-.. .- --.. -.-- / -.. --- --. / ----- .---- ..--- " +
-	"...-- ....- ..... -.... --... ---.. ----."
-
-var (
-	trieSink   *morsetrie.Trie
-	decodeSink string
-)
+var trieSink *morsetrie.Trie
 
 // BenchmarkDecode measures the performance of the Decode function.
 func BenchmarkDecode(b *testing.B) {
-	trie := morsetrie.StaticTrie
+	// Input is a Morse encoding of the text:
+	// "THE QUICK BROWN FOOX JUMPS OVER THE LAZY DOG 0123456789"
+	const input = `- .... . / --.- ..- .. -.-. -.- / -... .-. --- .-- -. / ` +
+		`..-. --- -..-. --- -..- / .--- ..- -- .--. ... / --- ...- . .-. / ` +
+		`- .... . / .-.. .- --.. -.-- / -.. --- --. / ----- .---- ..--- ` +
+		`...-- ....- ..... -.... --... ---.. ----.`
+
 	for b.Loop() {
-		out, _ := trie.Decode(input)
-		decodeSink = out
+		out, _ := morsetrie.Decode(input)
+		_ = out
 	}
 }
 

@@ -1,5 +1,4 @@
-// Package morsetrie_test provides black-box tests and runnable examples
-// for the public API of the morsetrie package.
+// Testable examples for the public API of the morsetrie package.
 package morsetrie_test
 
 import (
@@ -8,12 +7,10 @@ import (
 	"github.com/pierow2k/morsetrie"
 )
 
-// ExampleDecode provides an example to demonstrate the package-level
-// DecodeStatic function.
+// The Decode function decodes a string of Morse code.
 func ExampleDecode() {
 	morseCode := "- .... .. ... / .. ... / -- --- .-. ... . - .-. .. ."
 
-	// Use the static trie to decode the morse code.
 	text, err := morsetrie.Decode(morseCode)
 	if err != nil {
 		panic(err)
@@ -25,68 +22,72 @@ func ExampleDecode() {
 	// THIS IS MORSETRIE
 }
 
-// ExampleTrie_Decode_alphanumeric provides an example to demonstrate the
-// use of the Decode method to decode alphanumeric characters.
-func ExampleTrie_Decode_alphanumeric() {
-	trie := morsetrie.StaticTrie
-
-	// Define morse code input using standard alphanumeric characters.
-	morseCode := ".... . .-.. .-.. --- / .-- --- .-. .-.. -.."
-
-	// Call trie.Decode to decode the morse code data.
-	text, err := trie.Decode(morseCode)
-	if err != nil {
-		panic(err)
-	}
-
-	fmt.Println("Alphanumeric:")
+// The forward slash '/' is treated as a word separator.
+func ExampleDecode_wordSeparator() {
+	text, _ := morsetrie.Decode("... --- ... / ... --- ...")
 	fmt.Println(text)
 
 	// Output:
-	// Alphanumeric:
-	// HELLO WORLD
+	// SOS SOS
 }
 
-// ExampleTrie_Decode_extended provides an example to demonstrate the
-// use of the Decode method to decode the extended character set.
-func ExampleTrie_Decode_extended() {
-	trie := morsetrie.StaticTrie
+// The default static trie supports standard alphanumeric characters,
+// punctuation symbols, and the accented 'E'.
+func ExampleDecode_extended() {
+	morseCode := `..-.. .-.-.- --..-- ---... ..--.. .----. ` +
+		`-....- -..-. -.--. -.--.- .-..-. -...- .-.-. .--.-.`
 
-	// The package also supports the ITU specification for the accented 'E'
-	// as well as punctuation symbols.
-	extendedMorse := "..-.. .-.-.- --..-- ---... ..--.. .----. " +
-		"-....- -..-. -.--. -.--.- .-..-. -...- .-.-. .--.-."
-
-	extended, err := trie.Decode(extendedMorse)
+	text, err := morsetrie.Decode(morseCode)
 	if err != nil {
 		panic(err)
 	}
 
-	fmt.Println("Accented 'E' and Punctuation:")
-	fmt.Println(extended)
+	fmt.Println(text)
 
 	// Output:
-	// Accented 'E' and Punctuation:
 	// É.,:?’–/()"=+@
 }
 
-func ExampleTrie_Decode_prosign() {
-	// Procedural sign (or prosign) shorthand signals are not supported
-	// by the package since these can not be directly mapped to a rune.
-	// Prosigns are decoded as an unknown character, represented as '?'.
-	trie := morsetrie.StaticTrie
+// Decode returns ErrUnexpectedChar for invalid input characters.
+func ExampleDecode_invalidInput() {
+	text, err := morsetrie.Decode("... --- ...!")
+	fmt.Println(text)
+	fmt.Println(err)
 
-	prosign := "-.-.-"
+	// Output:
+	//
+	// unexpected character in morse input: !
+}
 
-	prosignText, err := trie.Decode(prosign)
+// Unknown Morse sequences are represented by '?' in the output.
+func ExampleDecode_unknownSequence() {
+	text, err := morsetrie.Decode(".......") // 7 dots — not a valid sequence
+	fmt.Println(text)
+	fmt.Println(err)
+
+	// Output:
+	// ?
+	// <nil>
+}
+
+// The Decode method can be called on a custom Trie instance,
+// allowing alternative Morse code mappings.
+func ExampleTrie_Decode() {
+	myTrie := &morsetrie.Trie{
+		Nodes: []morsetrie.Node{
+			{Val: 0, Child: [2]int16{1, 2}},     // root
+			{Val: 'E', Child: [2]int16{-1, -1}}, // just "." -> E
+			{Val: 'T', Child: [2]int16{-1, -1}}, // just "-" -> T
+		},
+	}
+
+	result, err := myTrie.Decode(". -")
 	if err != nil {
 		panic(err)
 	}
 
-	fmt.Println("Prosign:")
-	fmt.Println(prosignText)
+	fmt.Println(result)
 
 	// Output:
-	// Prosign:
-	// ?
+	// ET
 }
