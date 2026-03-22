@@ -1,0 +1,55 @@
+name: Golang CI
+description: 'Runs test and static analysers'
+
+on:
+  pull_request:
+  push:
+
+jobs:
+  go-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: 'go.mod'
+      - name: Run tests
+        run: go test -race ./...
+
+  go-vet:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: 'go.mod'
+      - name: Run go vet
+        run: go vet ./...
+
+  govulncheck:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+      - name: Setup Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: 'go.mod'
+      - name: Run govulncheck
+        run: go run golang.org/x/vuln/cmd/govulncheck@latest -format sarif ./... > govulncheck.json
+      - name: Upload govulncheck results
+        uses: actions/upload-artifact@v7
+        with:
+          name: govulncheck Results
+          path: govulncheck.json
+          retention-days: 1
+
+  staticcheck:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: 'go.mod'
+      - name: Staticcheck
+        run: go run honnef.co/go/tools/cmd/staticcheck@latest -checks=all ./...
