@@ -1,4 +1,4 @@
-// Package morsetrie implements trie-based decoding for morse code.
+// Package morsetrie implements trie-based decoding for Morse code.
 package morsetrie
 
 // StaticTrie is a hardcoded version of the ITU M.1677 trie.

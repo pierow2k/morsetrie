@@ -1,4 +1,4 @@
-// Package morsetrie implements trie-based decoding for morse code.
+// Package morsetrie implements trie-based decoding for Morse code.
 package morsetrie
 
 import (
@@ -9,7 +9,7 @@ import (
 )
 
 const (
-	// decodeAllocDivisor estimates decoded text size (approx 1/3 of morse input).
+	// decodeAllocDivisor estimates decoded text size (approx 1/3 of Morse input).
 	decodeAllocDivisor = 3
 
 	rootIdx     = int16(0)
@@ -17,7 +17,7 @@ const (
 	missingNode = int16(-1) // Represents a child definition that doesn't exist.
 )
 
-// ErrUnexpectedChar is returned when the morse code string contains
+// ErrUnexpectedChar is returned when the Morse code string contains
 // unsupported characters.
 var ErrUnexpectedChar = errors.New("unexpected character in morse input")
 
