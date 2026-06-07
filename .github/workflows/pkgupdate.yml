@@ -1,0 +1,20 @@
+name: Request Update on pkg.go.dev
+description: 'Request an update on pkg.go.dev when new version tags are pushed.'
+
+permissions:
+  contents: read
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+
+jobs:
+  update-pkg-go-dev:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Request pkg.go.dev update
+        run: |
+          MODULE="github.com/${GITHUB_REPOSITORY,,}"
+          curl --fail --silent --show-error \
+            "https://proxy.golang.org/${MODULE}/@v/${GITHUB_REF_NAME}.info"
